@@ -1,0 +1,16 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .sunked-shadow-inset {
+    box-shadow: inset 3px 3px 3px rgba(67, 67, 67, 0.3);
+    /* font-family: ; */
+  }
+
+  .bulged-shadow-inset {
+    box-shadow:
+      inset 3px 3px 6px rgba(255, 255, 255, 0.2),       /* dark inner bottom-right */
+      inset -3px -3px 6px rgba(88, 88, 88, 0.8); /* light inner top-left */
+}
+}
