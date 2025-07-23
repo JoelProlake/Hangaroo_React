@@ -7,6 +7,10 @@ Components required
 3. Title Bar (1)
 4. Answer squares (4x14)
 
+- Remaining to add animation of blinks on AnswerSquares when winning.
+- Should create You Win Component
+- Implement handleWin function. 
+
 */
 import { useEffect, useState } from "react";
 
@@ -15,6 +19,9 @@ export default function Hangaroo() {
   const [isPlay, setIsplay] = useState(false);
   const [arrangedArr, setArrangedArr] = useState([]);
   const [str, setStr] = useState("");
+  const [isGameOver, setIsGameOver] = useState(false);
+  const [winCount, setWinCount] = useState(0);
+  const [strAlphabets, setStrAlphabets] = useState();
   
   const allChars = Array.from({ length: 128 }, (_, i) => String.fromCharCode(i));
   let dispLetters = allChars.filter(
@@ -29,8 +36,8 @@ export default function Hangaroo() {
   for (let i = 65; i <= 90; i++) {
     letterMap[String.fromCharCode(i)] = false;
   }
-
   const [alphabets, setAlphabets] = useState(letterMap);
+
 
   // let string;
 
@@ -38,7 +45,17 @@ export default function Hangaroo() {
   useEffect(() => {
     const arrangedArrFromFunc = arrangeWords(str);
     setArrangedArr(arrangedArrFromFunc)
-  }, [str])
+  }, [str]);
+
+  // useEffect(() => {
+  //   console.log("Answer Displayed");
+  // }, [displayingLetters]);
+
+  // useEffect(() => {
+  //   if (!isWrong.includes(false)) {
+  //     gameOver();
+  //   }
+  // }, [isWrong]);
   
 
 
@@ -55,13 +72,13 @@ export default function Hangaroo() {
 
   // Alphabet Square Component
   function AlphabetSquare({ alphabet, isClicked }) {
-    console.log(alphabets);
+    // console.log(alphabets);
     return (
       <button
         onClick={() => handleLetterClick(alphabet)}
         // disabled={alphabets[alphabet] ? true : false}
         disabled={isClicked}
-        className={`w-8 h-8 rounded-xl text-xl bg-green-600 text-white font-black border-2 border-black items-center leading-4 `}
+        className={`${isClicked ? 'bg-yellow-600 text-yellow-400' : 'bg-green-600 text-white'} w-10 h-10 rounded-xl text-xl  font-black border-2 border-black items-center`}
       >
         {alphabet}
       </button>
@@ -96,7 +113,11 @@ export default function Hangaroo() {
     const index = isWrong.indexOf(false);
     if (index !== -1) {
       isWrong.splice(index, 1, true)
-    } else {
+      if (!isWrong.includes(false)){
+        gameOver();
+      }
+    } 
+    else {
       gameOver();
     }
   }
@@ -104,7 +125,26 @@ export default function Hangaroo() {
   // #### Displays alphabets if clicked alphabets are correct #### //
   function handleLetterDisplay(letter) {
     // dispLetters.push(letter);
-    setDisplayingLetters(prev => [...prev, letter]);
+    const updatedDisplayingLetters = [...displayingLetters, letter];
+    setDisplayingLetters(updatedDisplayingLetters);
+
+    // Check Winning
+    console.log("Checking completion");
+    console.log("strAlphabets", strAlphabets);
+    console.log("Displaying Letters", displayingLetters);
+
+    const isAllPresent = strAlphabets.every(alph => updatedDisplayingLetters.includes(alph));
+    if (isAllPresent) {
+      console.log("Completed");
+      // Apply animation for AnswerSquares here to blink upto 3 times
+      setWinCount(prevCount => prevCount + 1);
+      if (winCount == 10){
+        handleWin();
+      }
+      reset();
+    } else {
+      console.log("Not completed");
+    }
   }
 
   function gameOver() {
@@ -113,20 +153,38 @@ export default function Hangaroo() {
     }
     setAlphabets(letterMap);
     setDisplayingLetters(allChars);
-    setTimeout({reset}, 2000);
+    setWinCount(0);
+    setIsGameOver(true);
+    // setTimeout({reset}, 2000);
+  }
+
+  function handleWin() {
+
   }
 
   function reset() {
-    
+    for (let i = 65; i <= 90; i++) {
+      letterMap[String.fromCharCode(i)] = false;
+    }
+    setAlphabets(letterMap);
+    setDisplayingLetters(dispLetters);
+    setIsGameOver(false);
+    // setIsplay(false);
+    setIsWrong([false, false, false, false]);
+    getString();
   }
 
   // #### Funtion to get new string and set arranged Arr #### //
+  
   function getString() {
     setIsplay(true);
 
     // We can get strings using API
     let tempStr = "Hello, World!".toUpperCase();
-    
+
+    // let strAlphs = tempStr.split('').filter(ch => /A-Z/.test(ch));
+    let strAlphs = [...new Set(tempStr.split('').filter(ch => /[A-Z]/.test(ch)))];
+    setStrAlphabets(strAlphs);
     setStr(tempStr);   
     
   }
@@ -173,7 +231,8 @@ export default function Hangaroo() {
         grid[rowStart + padding + j] = (char === ' ') ? null : char;
       }
     }
-
+    
+    console.log("Arranged words", grid);
     return grid;
   }
 
@@ -184,19 +243,33 @@ export default function Hangaroo() {
       {!isPlay ? 
       (<button onClick={getString} className="w-32 h-16 pb-2 rounded-lg bg-yellow-500 text-green-500 font-bold text-5xl font-[cursive] hover:scale-95">Play</button>)
         :
-      (<div>
-        <div className="flex gap-1">
+      (<div className="flex flex-col items-center justify-center">
+        <div className="flex gap-1 mb-8">
           <WrongMarkSquare isWrong={isWrong[0]} />
           <WrongMarkSquare isWrong={isWrong[1]} />
           <WrongMarkSquare isWrong={isWrong[2]} />
           <WrongMarkSquare isWrong={isWrong[3]} />
         </div>
 
-        <div className="flex flex-wrap w-[30rem] gap-1 pt-3 pb-3 pl-[0.4rem] pr-1 border-2 border-blue-800 rounded-lg bg-white">
-        {Object.entries(alphabets).map(([letter, isClicked]) => (
-          <AlphabetSquare key={letter} alphabet={letter} isClicked={isClicked} />
-        ))}
-        </div>
+        {/* <div className="flex flex-wrap w-[28rem] h-[6rem] gap-1 pt-3.5 pb-3 pl-[0.4rem] pr-1 border-2 border-blue-800 rounded-lg bg-white"> */}
+        {isGameOver ? (
+          <div className="flex flex-col w-[34rem] h-[8rem] pb-3 items-center justify-center border-2 border-blue-800 rounded-lg bg-green-500 ">
+            <div className="rounded-lg">
+              <p className="text-red-600 font-bold text-5xl font-[cursive]">Game Over</p>
+              <button onClick={reset} className="bg-yellow-500 mt-3 p-1 rounded-md w-32 font-bold text-xl border-red-500 border-2 hover:scale-95">
+                Play Again
+              </button>
+            </div>
+            
+          </div>
+        ) : (
+          <div className="flex flex-wrap w-[37rem] h-[8rem] gap-1 pt-5 pb-4 pl-[11px] pr-1 border-2 border-blue-800 rounded-lg bg-white">
+          {Object.entries(alphabets).map(([letter, isClicked]) => (
+            <AlphabetSquare key={letter} alphabet={letter} isClicked={isClicked} />
+          ))}
+          </div>
+        )}
+        {/* </div> */}
 
         
         <div className="flex flex-wrap gap-1 w-[40rem] p-2 pl-[15px] bg-yellow-600 rounded-lg mt-2">
