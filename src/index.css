@@ -7,12 +7,16 @@
 @layer base {
   body {
     font-family: 'Fredoka', sans-serif;
-    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffcc02 50%, #ffa500 75%, #ff8c00 100%);
     min-height: 100vh;
+    margin: 0;
+    padding: 0;
   }
 }
 
 @layer utilities {
+  .grid-cols-14 {
+    grid-template-columns: repeat(14, minmax(0, 1fr));
+  }
   .sunked-shadow-inset {
     box-shadow: inset 3px 3px 3px rgba(67, 67, 67, 0.3);
     /* font-family: ; */
@@ -42,14 +46,15 @@
 
   @keyframes slideUpWrongMark {
     0% {
-      transform: translateY(100px);
+      transform: translateY(100px) scale(0.5) rotate(-180deg);
       opacity: 0;
     }
     50% {
       opacity: 1;
+      transform: translateY(-10px) scale(1.2) rotate(-90deg);
     }
     100% {
-      transform: translateY(0);
+      transform: translateY(0) scale(1) rotate(0deg);
       opacity: 1;
     }
   }
@@ -76,5 +81,64 @@
 
   .game-over-transition {
     transition: all 0.8s ease-in-out;
+  }
+
+  .win-glow {
+    box-shadow: 0 0 8px #fbbf24, 0 0 16px #f59e0b, 0 0 24px #f59e0b;
+    animation: pulse-glow 2s ease-in-out infinite alternate;
+  }
+
+  .animate-fade-in {
+    animation: fadeIn 0.3s ease-out;
+  }
+
+  .animate-bounce-in {
+    animation: bounceIn 0.6s ease-out;
+  }
+
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0.3) rotate(-10deg);
+      opacity: 0;
+    }
+    50% {
+      transform: scale(1.1) rotate(5deg);
+      opacity: 0.8;
+    }
+    100% {
+      transform: scale(1) rotate(0deg);
+      opacity: 1;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0% {
+      box-shadow: 0 0 8px #fbbf24, 0 0 16px #f59e0b, 0 0 24px #f59e0b;
+    }
+    100% {
+      box-shadow: 0 0 12px #fbbf24, 0 0 24px #f59e0b, 0 0 36px #f59e0b;
+    }
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
   }
 }

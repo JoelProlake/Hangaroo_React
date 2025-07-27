@@ -11,7 +11,7 @@ Components required
 - Implement handleWin function. 
 
 */
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 
 export default function Hangaroo() {
   const [isWrong, setIsWrong] = useState([false, false, false, false]);
@@ -23,7 +23,8 @@ export default function Hangaroo() {
   const [winCount, setWinCount] = useState(0);
   const [strAlphabets, setStrAlphabets] = useState();
   const [isBlinking, setIsBlinking] = useState(false);
-  
+  const [showWinModal, setShowWinModal] = useState(false);
+
   const allChars = Array.from({ length: 128 }, (_, i) => String.fromCharCode(i));
   let dispLetters = allChars.filter(
     ch => !(/[a-zA-Z]/.test(ch)) && /[\x21-\x7E]/.test(ch)
@@ -38,6 +39,33 @@ export default function Hangaroo() {
     letterMap[String.fromCharCode(i)] = false;
   }
   const [alphabets, setAlphabets] = useState(letterMap);
+
+  // Keyboard event handler
+  const handleKeyPress = useCallback((event) => {
+    const key = event.key.toUpperCase();
+
+    // Only allow A-Z keys, prevent all other keys
+    if (key.length === 1 && key >= 'A' && key <= 'Z') {
+      // Prevent default behavior for all keys
+      event.preventDefault();
+
+      // Only process if game is active, button not disabled, and not showing win modal
+      if (!alphabets[key] && isPlay && !isGameOver && !showWinModal) {
+        handleLetterClick(key);
+      }
+    } else {
+      // Prevent any non A-Z key from doing anything
+      event.preventDefault();
+    }
+  }, [alphabets, isPlay, isGameOver, showWinModal]);
+
+  // Add keyboard event listeners
+  useEffect(() => {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => {
+      window.removeEventListener('keydown', handleKeyPress);
+    };
+  }, [handleKeyPress]);
 
 
   // let string;
@@ -63,10 +91,22 @@ export default function Hangaroo() {
   // Wrong Mark Square Component
   function WrongMarkSquare({ isWrong, shouldAnimate }) {
     return (
-      <div className="w-14 h-16 rounded-md bg-yellow-500 relative overflow-hidden">
-        <p className={`text-6xl font-black ${isWrong ? "text-red-500" : "text-yellow-600"} ${shouldAnimate && isWrong ? "wrong-mark-enter" : ""}`}>
-          X
-        </p>
+      <div className={`w-20 h-20 rounded-2xl relative overflow-hidden border-3 shadow-2xl transition-all duration-500 transform ${
+        isWrong
+          ? 'bg-gradient-to-br from-red-500 via-red-600 to-red-800 border-red-300 scale-110'
+          : 'bg-gradient-to-br from-indigo-600 via-purple-700 to-pink-700 border-purple-400 hover:scale-105'
+      }`}>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className={`text-5xl font-black transition-all duration-500 ${
+            isWrong ? "text-yellow-200 drop-shadow-2xl animate-pulse" : "text-purple-200"
+          } ${shouldAnimate && isWrong ? "wrong-mark-enter" : ""}`}>
+            ✗
+          </div>
+        </div>
+        {isWrong && (
+          <div className="absolute inset-0 bg-gradient-to-br from-orange-400/20 to-transparent animate-ping"></div>
+        )}
+        <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent"></div>
       </div>
     );
   }
@@ -76,27 +116,27 @@ export default function Hangaroo() {
     const buttons = Array.from({ length: 10 }, (_, i) => i + 1);
 
     return (
-      <div className="flex flex-col items-center justify-center bg-yellow-600 rounded-lg p-2 h-16 w-24">
-        <div className="grid grid-cols-5 gap-1 mt-1">
+      <div className="flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl p-3 h-18 w-28 border-2 border-green-300 shadow-lg">
+        <div className="grid grid-cols-5 gap-1.5 mt-1">
           {buttons.slice(0, 5).map((buttonNum) => (
             <div
               key={buttonNum}
-              className={`w-3 h-3 rounded-full ${
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 buttonNum <= winCount
-                  ? 'bg-green-500 bulged-shadow-inset'
-                  : 'bg-yellow-700 sunked-shadow-inset'
+                  ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 shadow-sm bulged-shadow-inset win-glow'
+                  : 'bg-gradient-to-br from-green-700 to-green-800 sunked-shadow-inset'
               }`}
             />
           ))}
         </div>
-        <div className="grid grid-cols-5 gap-1 mt-1">
+        <div className="grid grid-cols-5 gap-1.5 mt-1">
           {buttons.slice(5, 10).map((buttonNum) => (
             <div
               key={buttonNum}
-              className={`w-3 h-3 rounded-full ${
+              className={`w-3 h-3 rounded-full transition-all duration-300 ${
                 buttonNum <= winCount
-                  ? 'bg-green-500 bulged-shadow-inset'
-                  : 'bg-yellow-700 sunked-shadow-inset'
+                  ? 'bg-gradient-to-br from-yellow-300 to-yellow-500 shadow-sm bulged-shadow-inset win-glow'
+                  : 'bg-gradient-to-br from-green-700 to-green-800 sunked-shadow-inset'
               }`}
             />
           ))}
@@ -107,13 +147,18 @@ export default function Hangaroo() {
 
   // Alphabet Square Component
   function AlphabetSquare({ alphabet, isClicked }) {
-    // console.log(alphabets);
     return (
       <button
         onClick={() => handleLetterClick(alphabet)}
-        // disabled={alphabets[alphabet] ? true : false}
         disabled={isClicked}
-        className={`${isClicked ? 'bg-yellow-600 text-yellow-400' : 'bg-green-600 text-white'} w-10 h-10 rounded-xl text-xl font-black border-2 border-black items-center button-disabled-transition hover:scale-105 active:scale-95`}
+        className={`w-14 h-14 rounded-xl text-xl font-black border-2 items-center button-disabled-transition hover:scale-105 active:scale-95 transition-all duration-200 shadow-md ${
+          isClicked
+            ? 'bg-gradient-to-br from-purple-400 via-pink-400 to-red-400 text-purple-200 border-purple-300 cursor-not-allowed opacity-60'
+            : 'bg-gradient-to-br from-blue-500 to-purple-600 text-white border-blue-300 hover:from-blue-400 hover:to-purple-500 shadow-lg'
+        }`}
+        style={{
+          flexBasis: 'calc(7.69% - 8px)' // 13 buttons per row with gaps
+        }}
       >
         {alphabet}
       </button>
@@ -123,7 +168,11 @@ export default function Hangaroo() {
   // Answer Squares component (4 x 14 = 56)
   function AnswerSquare({answer}) {
     return (
-      <div className={`w-10 h-10 rounded-xl text-xl ${answer ? 'bg-green-500 bulged-shadow-inset' : 'bg-yellow-600 sunked-shadow-inset'} text-white font-bold items-center text-center leading-9 answer-fill-transition ${isBlinking && answer ? 'answer-squares-blink' : ''}`}>
+      <div className={`w-11 h-11 rounded-lg text-xl font-black flex items-center justify-center answer-fill-transition border-2 transition-all duration-300 ${
+        answer
+          ? 'bg-gradient-to-br from-emerald-400 to-green-500 border-green-300 text-yellow-100 shadow-lg bulged-shadow-inset drop-shadow-lg'
+          : 'bg-gradient-to-br from-white/20 to-white/10 border-white/30 text-white/60 sunked-shadow-inset'
+      } ${isBlinking && answer ? 'answer-squares-blink' : ''}`}>
         {displayingLetters.includes(answer) && answer}
       </div>
     );
@@ -187,11 +236,16 @@ export default function Hangaroo() {
       setIsBlinking(true);
       setTimeout(() => {
         setIsBlinking(false);
-        setWinCount(prevCount => prevCount + 1);
-        if (winCount == 10){
-          handleWin();
+        setWinCount(prevCount => {
+          const newCount = prevCount + 1;
+          if (newCount === 10) {
+            handleWin();
+          }
+          return newCount;
+        });
+        if (winCount !== 9) { // Only reset if not winning
+          reset();
         }
-        reset();
       }, 1500); // Wait for blink animation to complete
     } else {
       console.log("Not completed");
@@ -212,21 +266,93 @@ export default function Hangaroo() {
   }
 
   function handleWin() {
-
+    setShowWinModal(true);
   }
 
   function reset() {
+    // Create fresh letterMap
+    let freshLetterMap = {};
     for (let i = 65; i <= 90; i++) {
-      letterMap[String.fromCharCode(i)] = false;
+      freshLetterMap[String.fromCharCode(i)] = false;
     }
-    setAlphabets(letterMap);
+    setAlphabets(freshLetterMap);
     setDisplayingLetters(dispLetters);
     setIsGameOver(false);
     setIsBlinking(false);
-    // setIsplay(false);
+    setShowWinModal(false);
     setIsWrong([false, false, false, false]);
     setWrongAnimations([false, false, false, false]);
     getString();
+  }
+
+  function resetWithWinCount() {
+    // Create fresh letterMap
+    let freshLetterMap = {};
+    for (let i = 65; i <= 90; i++) {
+      freshLetterMap[String.fromCharCode(i)] = false;
+    }
+    setAlphabets(freshLetterMap);
+    setDisplayingLetters(dispLetters);
+    setIsGameOver(false);
+    setIsBlinking(false);
+    setShowWinModal(false);
+    setWinCount(0);  // Reset win count
+    setIsWrong([false, false, false, false]);
+    setWrongAnimations([false, false, false, false]);
+    getString();
+  }
+
+  function resetToMainMenu() {
+    // Create fresh letterMap
+    let freshLetterMap = {};
+    for (let i = 65; i <= 90; i++) {
+      freshLetterMap[String.fromCharCode(i)] = false;
+    }
+    setAlphabets(freshLetterMap);
+    setDisplayingLetters(dispLetters);
+    setIsGameOver(false);
+    setIsBlinking(false);
+    setShowWinModal(false);
+    setWinCount(0);
+    setIsplay(false);
+    setIsWrong([false, false, false, false]);
+    setWrongAnimations([false, false, false, false]);
+    setStr("");
+    setArrangedArr([]);
+    setStrAlphabets([]);
+  }
+
+  // You Win Modal Component
+  function YouWinModal() {
+    return (
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-fade-in">
+        <div className="bg-gradient-to-br from-yellow-400 via-orange-500 to-red-500 p-8 rounded-3xl shadow-2xl border-4 border-yellow-300 max-w-md w-full mx-4 animate-bounce-in">
+          <div className="text-center">
+            <div className="text-6xl mb-4 animate-spin-slow">🎉</div>
+            <h1 className="text-4xl font-black text-white mb-2 drop-shadow-lg animate-pulse">
+              🏆 YOU WIN! 🏆
+            </h1>
+            <p className="text-xl text-yellow-100 mb-6 font-bold">
+              Congratulations! You've mastered the word game!
+            </p>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={resetWithWinCount}
+                className="bg-gradient-to-br from-green-500 to-emerald-600 text-white px-8 py-3 rounded-xl font-bold text-lg border-2 border-green-300 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg"
+              >
+                🎮 Play Again
+              </button>
+              <button
+                onClick={resetToMainMenu}
+                className="bg-gradient-to-br from-purple-500 to-indigo-600 text-white px-8 py-3 rounded-xl font-bold text-lg border-2 border-purple-300 hover:scale-105 active:scale-95 transition-all duration-200 shadow-lg"
+              >
+                🏠 Main Menu
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // #### Funtion to get new string and set arranged Arr #### //
@@ -294,50 +420,62 @@ export default function Hangaroo() {
 
   return (
     <>
-
-      {!isPlay ? 
-      (<button onClick={getString} className="w-32 h-16 pb-2 rounded-lg bg-yellow-500 text-green-500 font-bold text-5xl font-[cursive] hover:scale-95">Play</button>)
-        :
-      (<div className="flex flex-col items-center justify-center">
-        <div className="flex justify-between mb-8 items-center w-[41rem]">
-          <div className="w-6"></div>
-          <div className="flex gap-1 justify-center">
-            <WrongMarkSquare isWrong={isWrong[0]} shouldAnimate={wrongAnimations[0]} />
-            <WrongMarkSquare isWrong={isWrong[1]} shouldAnimate={wrongAnimations[1]} />
-            <WrongMarkSquare isWrong={isWrong[2]} shouldAnimate={wrongAnimations[2]} />
-            <WrongMarkSquare isWrong={isWrong[3]} shouldAnimate={wrongAnimations[3]} />
-          </div>
-          <WinCountIndicator winCount={winCount} />
-        </div>
-
-        {/* <div className="flex flex-wrap w-[28rem] h-[6rem] gap-1 pt-3.5 pb-3 pl-[0.4rem] pr-1 border-2 border-blue-800 rounded-lg bg-white"> */}
-        {isGameOver ? (
-          <div className="flex flex-col w-[34rem] h-[8rem] pb-3 items-center justify-center border-2 border-blue-800 rounded-lg bg-green-500 game-over-transition">
-            <div className="rounded-lg">
-              <p className="text-red-600 font-bold text-5xl font-[cursive]">Game Over</p>
-              <button onClick={reset} className="bg-yellow-500 mt-3 p-1 rounded-md w-32 font-bold text-xl border-red-500 border-2 hover:scale-95 heartbeat-animation">
-                Play Again
-              </button>
+      <div className="min-h-screen bg-gradient-to-br from-blue-900 via-purple-800 to-indigo-900 flex">
+      {/* Game Area - Left Side */}
+      <div className="flex-1 flex items-center justify-center p-8">
+        <div className="max-w-2xl w-full">
+          {!isPlay ?
+          (<div className="flex justify-center">
+            <button onClick={getString} className="w-40 h-20 pb-2 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 text-white font-bold text-4xl font-[cursive] hover:scale-95 shadow-2xl border-4 border-white/20">
+              Play
+            </button>
+          </div>)
+            :
+          (<div className="flex flex-col items-center justify-center space-y-8">
+            {/* Top Bar with Wrong Marks and Win Counter */}
+            <div className="flex justify-between items-center w-full max-w-[41rem] bg-white/10 backdrop-blur-sm rounded-2xl p-4 border border-white/20">
+              <div className="w-6"></div>
+              <div className="flex gap-2 justify-center">
+                <WrongMarkSquare isWrong={isWrong[0]} shouldAnimate={wrongAnimations[0]} />
+                <WrongMarkSquare isWrong={isWrong[1]} shouldAnimate={wrongAnimations[1]} />
+                <WrongMarkSquare isWrong={isWrong[2]} shouldAnimate={wrongAnimations[2]} />
+                <WrongMarkSquare isWrong={isWrong[3]} shouldAnimate={wrongAnimations[3]} />
+              </div>
+              <WinCountIndicator winCount={winCount} />
             </div>
 
-          </div>
-        ) : (
-          <div className="flex flex-wrap w-[37rem] h-[8rem] gap-1 pt-5 pb-4 pl-[11px] pr-1 border-2 border-blue-800 rounded-lg bg-transparent">
-          {Object.entries(alphabets).map(([letter, isClicked]) => (
-            <AlphabetSquare key={letter} alphabet={letter} isClicked={isClicked} />
-          ))}
-          </div>
-        )}
-        {/* </div> */}
+            {/* Alphabet Grid or Game Over */}
+            {isGameOver ? (
+              <div className="flex flex-col w-full max-w-[34rem] h-[8rem] pb-3 items-center justify-center border-2 border-red-400 rounded-2xl bg-gradient-to-br from-red-500 to-red-700 shadow-2xl game-over-transition">
+                <div className="rounded-lg text-center">
+                  <p className="text-white font-bold text-5xl font-[cursive] drop-shadow-lg">Game Over</p>
+                  <button onClick={reset} className="bg-gradient-to-br from-yellow-400 to-orange-500 mt-3 p-3 rounded-xl w-36 font-bold text-xl text-white border-2 border-white/30 hover:scale-95 heartbeat-animation shadow-lg">
+                    Play Again
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex flex-wrap w-full max-w-[50rem] min-h-[8rem] gap-2 p-6 border-2 border-white/30 rounded-2xl bg-white/10 backdrop-blur-sm">
+              {Object.entries(alphabets).map(([letter, isClicked]) => (
+                <AlphabetSquare key={letter} alphabet={letter} isClicked={isClicked} />
+              ))}
+              </div>
+            )}
 
-        
-        <div className={`flex flex-wrap gap-1 w-[40rem] p-2 pl-[15px] rounded-lg mt-2 bg-transition ${!isWrong.includes(false) ? 'bg-red-600' : 'bg-yellow-600'}`}>
-          {arrangedArr.map((item, index) => (
-            <AnswerSquare key={index} answer={item} />)
-          )}
+            {/* Answer Grid */}
+            <div className={`grid grid-cols-14 gap-1 w-full max-w-[45rem] p-4 rounded-2xl bg-transition shadow-xl border-2 ${!isWrong.includes(false) ? 'bg-gradient-to-br from-red-500 to-red-700 border-red-300' : 'bg-gradient-to-br from-amber-500 to-orange-600 border-orange-300'}`}>
+              {Array.from({ length: 56 }, (_, index) => (
+                <AnswerSquare key={index} answer={arrangedArr[index]} />)
+              )}
+            </div>
+          </div>)
+          }
         </div>
-      </div>)
-      }
+      </div>
+      </div>
+
+      {/* You Win Modal */}
+      {showWinModal && <YouWinModal />}
     </>
   );
 }
