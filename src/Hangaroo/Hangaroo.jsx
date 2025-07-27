@@ -7,7 +7,6 @@ Components required
 3. Title Bar (1)
 4. Answer squares (4x14)
 
-- Remaining to add animation of blinks on AnswerSquares when winning.
 - Should create You Win Component
 - Implement handleWin function. 
 
@@ -16,12 +15,14 @@ import { useEffect, useState } from "react";
 
 export default function Hangaroo() {
   const [isWrong, setIsWrong] = useState([false, false, false, false]);
+  const [wrongAnimations, setWrongAnimations] = useState([false, false, false, false]);
   const [isPlay, setIsplay] = useState(false);
   const [arrangedArr, setArrangedArr] = useState([]);
   const [str, setStr] = useState("");
   const [isGameOver, setIsGameOver] = useState(false);
   const [winCount, setWinCount] = useState(0);
   const [strAlphabets, setStrAlphabets] = useState();
+  const [isBlinking, setIsBlinking] = useState(false);
   
   const allChars = Array.from({ length: 128 }, (_, i) => String.fromCharCode(i));
   let dispLetters = allChars.filter(
@@ -60,12 +61,46 @@ export default function Hangaroo() {
 
 
   // Wrong Mark Square Component
-  function WrongMarkSquare({ isWrong }) {
+  function WrongMarkSquare({ isWrong, shouldAnimate }) {
     return (
-      <div className="w-14 h-16 rounded-md bg-yellow-500 ">
-        <p className={`text-6xl  font-black ${isWrong ? "text-red-500" : "text-yellow-600"} `}>
+      <div className="w-14 h-16 rounded-md bg-yellow-500 relative overflow-hidden">
+        <p className={`text-6xl font-black ${isWrong ? "text-red-500" : "text-yellow-600"} ${shouldAnimate && isWrong ? "wrong-mark-enter" : ""}`}>
           X
         </p>
+      </div>
+    );
+  }
+
+  // Win Count Indicator Component
+  function WinCountIndicator({ winCount }) {
+    const buttons = Array.from({ length: 10 }, (_, i) => i + 1);
+
+    return (
+      <div className="flex flex-col items-center justify-center bg-yellow-600 rounded-lg p-2 h-16 w-24">
+        <div className="grid grid-cols-5 gap-1 mt-1">
+          {buttons.slice(0, 5).map((buttonNum) => (
+            <div
+              key={buttonNum}
+              className={`w-3 h-3 rounded-full ${
+                buttonNum <= winCount
+                  ? 'bg-green-500 bulged-shadow-inset'
+                  : 'bg-yellow-700 sunked-shadow-inset'
+              }`}
+            />
+          ))}
+        </div>
+        <div className="grid grid-cols-5 gap-1 mt-1">
+          {buttons.slice(5, 10).map((buttonNum) => (
+            <div
+              key={buttonNum}
+              className={`w-3 h-3 rounded-full ${
+                buttonNum <= winCount
+                  ? 'bg-green-500 bulged-shadow-inset'
+                  : 'bg-yellow-700 sunked-shadow-inset'
+              }`}
+            />
+          ))}
+        </div>
       </div>
     );
   }
@@ -78,7 +113,7 @@ export default function Hangaroo() {
         onClick={() => handleLetterClick(alphabet)}
         // disabled={alphabets[alphabet] ? true : false}
         disabled={isClicked}
-        className={`${isClicked ? 'bg-yellow-600 text-yellow-400' : 'bg-green-600 text-white'} w-10 h-10 rounded-xl text-xl  font-black border-2 border-black items-center`}
+        className={`${isClicked ? 'bg-yellow-600 text-yellow-400' : 'bg-green-600 text-white'} w-10 h-10 rounded-xl text-xl font-black border-2 border-black items-center button-disabled-transition hover:scale-105 active:scale-95`}
       >
         {alphabet}
       </button>
@@ -88,12 +123,9 @@ export default function Hangaroo() {
   // Answer Squares component (4 x 14 = 56)
   function AnswerSquare({answer}) {
     return (
-      
-      <div className={`w-10 h-10 rounded-xl text-xl ${answer ? 'bg-green-500 bulged-shadow-inset' : 'bg-yellow-600 sunked-shadow-inset'} text-white font-bold i items-center text-center leading-9`}>
+      <div className={`w-10 h-10 rounded-xl text-xl ${answer ? 'bg-green-500 bulged-shadow-inset' : 'bg-yellow-600 sunked-shadow-inset'} text-white font-bold items-center text-center leading-9 answer-fill-transition ${isBlinking && answer ? 'answer-squares-blink' : ''}`}>
         {displayingLetters.includes(answer) && answer}
       </div>
-      
-      
     );
   }
 
@@ -112,11 +144,26 @@ export default function Hangaroo() {
   function handleWrongGuess() {
     const index = isWrong.indexOf(false);
     if (index !== -1) {
-      isWrong.splice(index, 1, true)
-      if (!isWrong.includes(false)){
-        gameOver();
+      const newIsWrong = [...isWrong];
+      const newWrongAnimations = [...wrongAnimations];
+      newIsWrong[index] = true;
+      newWrongAnimations[index] = true;
+      setIsWrong(newIsWrong);
+      setWrongAnimations(newWrongAnimations);
+
+      // Reset animation state after animation completes (2 seconds)
+      setTimeout(() => {
+        setWrongAnimations(prev => {
+          const updated = [...prev];
+          updated[index] = false;
+          return updated;
+        });
+      }, 2000);
+
+      if (!newIsWrong.includes(false)){
+        setTimeout(() => gameOver(), 2000); // Wait for animation to complete
       }
-    } 
+    }
     else {
       gameOver();
     }
@@ -137,11 +184,15 @@ export default function Hangaroo() {
     if (isAllPresent) {
       console.log("Completed");
       // Apply animation for AnswerSquares here to blink upto 3 times
-      setWinCount(prevCount => prevCount + 1);
-      if (winCount == 10){
-        handleWin();
-      }
-      reset();
+      setIsBlinking(true);
+      setTimeout(() => {
+        setIsBlinking(false);
+        setWinCount(prevCount => prevCount + 1);
+        if (winCount == 10){
+          handleWin();
+        }
+        reset();
+      }, 1500); // Wait for blink animation to complete
     } else {
       console.log("Not completed");
     }
@@ -155,6 +206,8 @@ export default function Hangaroo() {
     setDisplayingLetters(allChars);
     setWinCount(0);
     setIsGameOver(true);
+    setIsBlinking(false);
+    setWrongAnimations([false, false, false, false]);
     // setTimeout({reset}, 2000);
   }
 
@@ -169,8 +222,10 @@ export default function Hangaroo() {
     setAlphabets(letterMap);
     setDisplayingLetters(dispLetters);
     setIsGameOver(false);
+    setIsBlinking(false);
     // setIsplay(false);
     setIsWrong([false, false, false, false]);
+    setWrongAnimations([false, false, false, false]);
     getString();
   }
 
@@ -244,26 +299,30 @@ export default function Hangaroo() {
       (<button onClick={getString} className="w-32 h-16 pb-2 rounded-lg bg-yellow-500 text-green-500 font-bold text-5xl font-[cursive] hover:scale-95">Play</button>)
         :
       (<div className="flex flex-col items-center justify-center">
-        <div className="flex gap-1 mb-8">
-          <WrongMarkSquare isWrong={isWrong[0]} />
-          <WrongMarkSquare isWrong={isWrong[1]} />
-          <WrongMarkSquare isWrong={isWrong[2]} />
-          <WrongMarkSquare isWrong={isWrong[3]} />
+        <div className="flex justify-between mb-8 items-center w-[41rem]">
+          <div className="w-6"></div>
+          <div className="flex gap-1 justify-center">
+            <WrongMarkSquare isWrong={isWrong[0]} shouldAnimate={wrongAnimations[0]} />
+            <WrongMarkSquare isWrong={isWrong[1]} shouldAnimate={wrongAnimations[1]} />
+            <WrongMarkSquare isWrong={isWrong[2]} shouldAnimate={wrongAnimations[2]} />
+            <WrongMarkSquare isWrong={isWrong[3]} shouldAnimate={wrongAnimations[3]} />
+          </div>
+          <WinCountIndicator winCount={winCount} />
         </div>
 
         {/* <div className="flex flex-wrap w-[28rem] h-[6rem] gap-1 pt-3.5 pb-3 pl-[0.4rem] pr-1 border-2 border-blue-800 rounded-lg bg-white"> */}
         {isGameOver ? (
-          <div className="flex flex-col w-[34rem] h-[8rem] pb-3 items-center justify-center border-2 border-blue-800 rounded-lg bg-green-500 ">
+          <div className="flex flex-col w-[34rem] h-[8rem] pb-3 items-center justify-center border-2 border-blue-800 rounded-lg bg-green-500 game-over-transition">
             <div className="rounded-lg">
               <p className="text-red-600 font-bold text-5xl font-[cursive]">Game Over</p>
-              <button onClick={reset} className="bg-yellow-500 mt-3 p-1 rounded-md w-32 font-bold text-xl border-red-500 border-2 hover:scale-95">
+              <button onClick={reset} className="bg-yellow-500 mt-3 p-1 rounded-md w-32 font-bold text-xl border-red-500 border-2 hover:scale-95 heartbeat-animation">
                 Play Again
               </button>
             </div>
-            
+
           </div>
         ) : (
-          <div className="flex flex-wrap w-[37rem] h-[8rem] gap-1 pt-5 pb-4 pl-[11px] pr-1 border-2 border-blue-800 rounded-lg bg-white">
+          <div className="flex flex-wrap w-[37rem] h-[8rem] gap-1 pt-5 pb-4 pl-[11px] pr-1 border-2 border-blue-800 rounded-lg bg-transparent">
           {Object.entries(alphabets).map(([letter, isClicked]) => (
             <AlphabetSquare key={letter} alphabet={letter} isClicked={isClicked} />
           ))}
@@ -272,7 +331,7 @@ export default function Hangaroo() {
         {/* </div> */}
 
         
-        <div className="flex flex-wrap gap-1 w-[40rem] p-2 pl-[15px] bg-yellow-600 rounded-lg mt-2">
+        <div className={`flex flex-wrap gap-1 w-[40rem] p-2 pl-[15px] rounded-lg mt-2 bg-transition ${!isWrong.includes(false) ? 'bg-red-600' : 'bg-yellow-600'}`}>
           {arrangedArr.map((item, index) => (
             <AnswerSquare key={index} answer={item} />)
           )}

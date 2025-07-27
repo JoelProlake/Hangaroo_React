@@ -1,6 +1,16 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@300;400;500;600;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Fredoka', sans-serif;
+    background: linear-gradient(135deg, #ffd700 0%, #ffed4e 25%, #ffcc02 50%, #ffa500 75%, #ff8c00 100%);
+    min-height: 100vh;
+  }
+}
 
 @layer utilities {
   .sunked-shadow-inset {
@@ -12,5 +22,59 @@
     box-shadow:
       inset 3px 3px 6px rgba(255, 255, 255, 0.2),       /* dark inner bottom-right */
       inset -3px -3px 6px rgba(88, 88, 88, 0.8); /* light inner top-left */
-}
+  }
+
+  .wrong-mark-enter {
+    animation: slideUpWrongMark 1s ease-out forwards;
+  }
+
+  .answer-squares-blink {
+    animation: blinkAnswerSquares 1.5s ease-in-out;
+  }
+
+  .button-disabled-transition {
+    transition: all 0.3s ease-in-out;
+  }
+
+  .answer-fill-transition {
+    transition: all 0.4s ease-in-out;
+  }
+
+  @keyframes slideUpWrongMark {
+    0% {
+      transform: translateY(100px);
+      opacity: 0;
+    }
+    50% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes blinkAnswerSquares {
+    0%, 100% { opacity: 1; }
+    16.66%, 33.33% { opacity: 0.3; }
+    50%, 66.66% { opacity: 1; }
+    83.33% { opacity: 0.3; }
+  }
+
+  @keyframes heartbeat {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+  }
+
+  .heartbeat-animation {
+    animation: heartbeat 1s ease-in-out infinite;
+  }
+
+  .bg-transition {
+    transition: background-color 0.8s ease-in-out;
+  }
+
+  .game-over-transition {
+    transition: all 0.8s ease-in-out;
+  }
 }
